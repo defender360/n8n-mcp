@@ -1,0 +1,16 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "n8n start"
+healthcheckPath = "/healthz"
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "n8n"
+port = 5678
+
+[[services]]
+name = "mcp"
+port = 3000
