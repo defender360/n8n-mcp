@@ -15,8 +15,10 @@ USER node
 
 # Set environment variables
 ENV N8N_HOST=0.0.0.0
-ENV N8N_PORT=5678
 ENV NODE_ENV=production
+
+# Railway provides PORT dynamically
+ENV N8N_PORT=${PORT:-5678}
 
 # Expose n8n port
 EXPOSE 5678
@@ -25,4 +27,4 @@ EXPOSE 5678
 WORKDIR /home/node
 
 # Start n8n
-CMD ["n8n", "start"]
+CMD ["sh", "-c", "n8n start --host=0.0.0.0 --port=${PORT:-5678}"]
