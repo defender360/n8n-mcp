@@ -13,11 +13,11 @@ RUN mkdir -p /home/node/.n8n /data && \
 # Switch back to node user
 USER node
 
-# Expose n8n port
+# Expose n8n port - Railway will use $PORT
 EXPOSE 5678
 
 # Set working directory
 WORKDIR /home/node
 
-# Start n8n
-CMD ["n8n", "start"]
+# Start n8n with proper host binding
+CMD ["n8n", "start", "--host=0.0.0.0"]
