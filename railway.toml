@@ -4,5 +4,3 @@ dockerfilePath = "./Dockerfile.simple"
 
 [deploy]
 startCommand = "n8n start"
-restartPolicyType = "on-failure"
-restartPolicyMaxRetries = 3
