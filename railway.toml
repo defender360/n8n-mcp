@@ -3,4 +3,4 @@ builder = "dockerfile"
 dockerfilePath = "./Dockerfile.simple"
 
 [deploy]
-startCommand = "n8n start"
+startCommand = "n8n start --host=0.0.0.0 --port=$PORT"
