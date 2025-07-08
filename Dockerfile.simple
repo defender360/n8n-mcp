@@ -1,0 +1,23 @@
+FROM n8nio/n8n:latest
+
+# Use root to install dependencies
+USER root
+
+# Install Redis for in-memory storage
+RUN apk add --no-cache redis
+
+# Create necessary directories
+RUN mkdir -p /home/node/.n8n /data && \
+    chown -R node:node /home/node/.n8n /data
+
+# Switch back to node user
+USER node
+
+# Expose n8n port
+EXPOSE 5678
+
+# Set working directory
+WORKDIR /home/node
+
+# Start n8n
+CMD ["n8n", "start"]
