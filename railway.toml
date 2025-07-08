@@ -1,12 +1,8 @@
 [build]
-builder = "nixpacks"
-buildCommand = "npm install"
+builder = "dockerfile"
+dockerfilePath = "./Dockerfile.simple"
 
 [deploy]
-startCommand = "npx n8n"
-healthcheckPath = "/healthz"
+startCommand = "n8n start"
 restartPolicyType = "on-failure"
 restartPolicyMaxRetries = 3
-
-[environment]
-NODE_ENV = "production"
