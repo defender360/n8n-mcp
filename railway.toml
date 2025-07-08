@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "npx n8n"
+healthcheckPath = "/healthz"
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 3
+
+[environment]
+NODE_ENV = "production"
