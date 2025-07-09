@@ -1,36 +1,58 @@
-# Railway-specific Dockerfile - No cache mounts for guaranteed compatibility
-FROM node:20-alpine
+# Railway-compatible Dockerfile - based on local project structure
+# Ultra-optimized multi-stage build without cache mounts
 
+# Stage 1: Builder (TypeScript compilation only)
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install system dependencies
-RUN apk add --no-cache curl python3 make g++ && \
-    rm -rf /var/cache/apk/*
-
-# Copy package files
-COPY package.json package-lock.json* ./
-COPY package.runtime.json ./
-
-# Install ALL dependencies (build + runtime)
-RUN npm install
-
-# Copy TypeScript configuration
+# Copy tsconfig for TypeScript compilation
 COPY tsconfig.json ./
 
-# Copy source code
-COPY src ./src
+# Create minimal package.json and install ONLY build dependencies
+# Removed cache mount for Railway compatibility
+RUN echo '{}' > package.json && \
+    npm install --no-save typescript@^5.8.3 @types/node@^22.15.30 @types/express@^5.0.3 \
+        @modelcontextprotocol/sdk@^1.12.1 dotenv@^16.5.0 express@^5.1.0 axios@^1.10.0 \
+        n8n-workflow@^1.96.0 uuid@^11.0.5 @types/uuid@^10.0.0
 
-# Build TypeScript
+# Copy source and build
+COPY src ./src
+# Note: src/n8n contains TypeScript types needed for compilation
+# These will be compiled but not included in runtime
 RUN npx tsc
 
-# Copy database and other files
+# Stage 2: Runtime (minimal dependencies)
+FROM node:20-alpine AS runtime
+WORKDIR /app
+
+# Install only essential runtime tools
+RUN apk add --no-cache curl && \
+    rm -rf /var/cache/apk/*
+
+# Copy runtime-only package.json
+COPY package.runtime.json package.json
+
+# Install runtime dependencies (removed cache mount for Railway compatibility)
+RUN npm install --production --no-audit --no-fund
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Copy pre-built database and required files
+# Cache bust: 2025-07-06-trigger-fix-v3 - includes is_trigger=true for webhook,cron,interval,emailReadImap
 COPY data/nodes.db ./data/
 COPY src/database/schema-optimized.sql ./src/database/
 COPY .env.example ./
 
-# Copy entrypoint if it exists
-COPY docker/docker-entrypoint.sh /usr/local/bin/ 2>/dev/null || echo "#!/bin/sh\nexec \"\$@\"" > /usr/local/bin/docker-entrypoint.sh
+# Copy entrypoint script
+COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Add container labels
+LABEL org.opencontainers.image.source="https://github.com/czlonkowski/n8n-mcp"
+LABEL org.opencontainers.image.description="n8n MCP Server - Runtime Only"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.title="n8n-mcp"
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -40,17 +62,16 @@ RUN addgroup -g 1001 -S nodejs && \
 # Switch to non-root user
 USER nodejs
 
-# Set environment
+# Set Docker environment flag
 ENV IS_DOCKER=true
-ENV NODE_ENV=production
 
-# Expose port
+# Expose HTTP port
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://127.0.0.1:3000/health || exit 1
 
-# Start command
+# Optimized entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/mcp/index.js"]
