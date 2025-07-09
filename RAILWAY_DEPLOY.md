@@ -5,121 +5,97 @@ This guide will help you deploy the n8n MCP server to Railway.
 ## Prerequisites
 
 - [Railway Account](https://railway.app)
-- GitHub account connected to Railway
+- [Railway CLI](https://docs.railway.app/develop/cli) installed
+- n8n workflows with "mcp" tag and Subworkflow triggers
 
 ## Quick Deploy
 
-### Step 1: Deploy to Railway
+### Option 1: Deploy with Railway Button
 
-1. Go to your Railway dashboard
-2. Click "New Project" → "Deploy from GitHub repo"
-3. Select `defender360/n8n-mcp`
-4. Railway will automatically detect the configuration
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/deploy?template=https://github.com/defender360/n8n-mcp)
 
-### Step 2: Add Required Services
+### Option 2: Manual Deploy
 
-In your Railway project:
+1. Clone this repository:
+```bash
+git clone https://github.com/defender360/n8n-mcp.git
+cd n8n-mcp
+```
 
-1. **PostgreSQL Database**:
-   - Click "New" → "Database" → "Add PostgreSQL"
-   - Railway will automatically configure connection variables
+2. Run the deployment script:
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
 
-2. **Redis**:
-   - Click "New" → "Database" → "Add Redis"  
-   - Railway will automatically configure connection variables
+## Manual Configuration
 
-### Step 3: Configure Environment Variables
+### 1. Set Environment Variables
 
-Copy ALL variables from `.env.railway` file to Railway:
+In your Railway dashboard, set these variables:
 
-1. Go to your service → "Variables" tab
-2. Click "Raw Editor"
-3. Copy and paste all variables from `.env.railway`
-4. **IMPORTANT**: Update these values:
-   - `N8N_BASIC_AUTH_PASSWORD` - Change to a secure password
-   - `N8N_ENCRYPTION_KEY` - Generate with: `openssl rand -base64 32`
+```env
+# n8n Configuration
+N8N_BASIC_AUTH_ACTIVE=true
+N8N_BASIC_AUTH_USER=your_username
+N8N_BASIC_AUTH_PASSWORD=your_secure_password
+N8N_HOST=0.0.0.0
+N8N_PORT=5678
+N8N_PROTOCOL=https
+WEBHOOK_URL=https://your-app.up.railway.app/
+N8N_EDITOR_BASE_URL=https://your-app.up.railway.app/
 
-### Step 4: Deploy and Access
+# Encryption key (generate with: openssl rand -base64 32)
+N8N_ENCRYPTION_KEY=your_generated_key_here
 
-1. Railway will automatically redeploy after adding variables
-2. Wait for the build to complete (check logs)
-3. Get your URL from Railway dashboard (top right)
-4. Access n8n at: `https://your-app.railway.app`
-5. Login with your configured credentials
+# MCP Configuration
+MCP_SERVER_ENABLED=true
+MCP_SERVER_PORT=3000
 
-## Setting up MCP Server
+# n8n API
+N8N_API_ENABLED=true
+```
 
-After n8n is running:
+### 2. Configure n8n
 
-### 1. Create API Key
-- Go to Settings → API → Generate API Key
-- Save this key securely
+1. Access your n8n instance at `https://your-app.up.railway.app`
+2. Create an API key: Settings → API → Generate API Key
+3. Import the MCP workflow from the documentation
+4. Tag your workflows with "mcp" to expose them via MCP
 
-### 2. Import MCP Workflow
-- Import the workflow from the n8n.md documentation
-- The workflow will create MCP server endpoints
+### 3. Configure MCP Client
 
-### 3. Configure Your Workflows
-- Tag workflows you want to expose with "mcp"
-- Ensure they have "Execute Workflow Trigger" nodes
-- Define input schema in the trigger nodes
-
-### 4. Get MCP Server URL
-- Open the imported MCP workflow
-- Find the webhook URL (e.g., `https://your-app.railway.app/webhook/xxx`)
-- This is your MCP server endpoint
-
-### 5. Configure Claude Desktop
-
-Edit `claude_desktop_config.json`:
+For Claude Desktop, create/edit `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "n8n-workflows": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sse-client",
-        "https://your-app.railway.app/webhook/your-webhook-id"
-      ]
+      "command": "node",
+      "args": ["/path/to/mcp-client.js"],
+      "env": {
+        "MCP_SERVER_URL": "https://your-app.up.railway.app/webhook/your-webhook-id"
+      }
     }
   }
 }
 ```
 
+## Workflow Requirements
+
+For workflows to be accessible via MCP:
+
+1. Add the tag "mcp" to the workflow
+2. Include an "Execute Workflow Trigger" node
+3. Define input schema in the trigger node
+
 ## Troubleshooting
 
-### n8n shows "localhost:5678"
-- Check that all environment variables are set correctly
-- Ensure `N8N_HOST=0.0.0.0` is configured
-- Railway should provide `PORT` automatically
-
-### Database Connection Errors
-- Verify PostgreSQL service is added
-- Check that database variables use Railway's template syntax: `${{PGDATABASE}}`
-
-### Cannot Access n8n Externally
-- Verify your Railway service has a domain assigned
-- Check logs for binding errors
-- Ensure `WEBHOOK_URL` and `N8N_EDITOR_BASE_URL` use `https://${{RAILWAY_PUBLIC_DOMAIN}}`
-
-### MCP Connection Issues
-- Verify n8n API is enabled: `N8N_API_ENABLED=true`
-- Check that workflows have the "mcp" tag
-- Ensure API key is valid and has correct permissions
-
-## Security Notes
-
-1. Always use HTTPS in production
-2. Set strong passwords for `N8N_BASIC_AUTH_PASSWORD`
-3. Generate a unique `N8N_ENCRYPTION_KEY`
-4. Consider IP whitelisting if needed
-5. Regularly update n8n to the latest version
+- **Database Connection Error**: Railway automatically provisions PostgreSQL. Check that database variables are set.
+- **Redis Connection Error**: Ensure Redis service is added and variables are configured.
+- **Workflows Not Found**: Verify workflows have the "mcp" tag.
+- **API Authentication Error**: Check that n8n API key is correctly configured.
 
 ## Support
 
-For deployment issues, check:
-- Railway logs for build/runtime errors
-- n8n logs for application errors
-- This repository's issues section
+For issues specific to this Railway deployment, please open an issue in this repository.
