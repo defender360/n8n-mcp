@@ -1,15 +1,19 @@
 # syntax=docker/dockerfile:1.7
 # Ultra-optimized Dockerfile - minimal runtime dependencies (no n8n packages)
 
+# Build arguments
+ARG BUILDKIT_CACHE_KEY=n8n-mcp-cache
+
 # Stage 1: Builder (TypeScript compilation only)
 FROM node:20-alpine AS builder
+ARG BUILDKIT_CACHE_KEY
 WORKDIR /app
 
 # Copy tsconfig for TypeScript compilation
 COPY tsconfig.json ./
 
 # Create minimal package.json and install ONLY build dependencies
-RUN --mount=type=cache,id=npm-builder,target=/root/.npm \
+RUN --mount=type=cache,id=${BUILDKIT_CACHE_KEY}-npm-builder,target=/root/.npm \
     echo '{}' > package.json && \
     npm install --no-save typescript@^5.8.3 @types/node@^22.15.30 @types/express@^5.0.3 \
         @modelcontextprotocol/sdk@^1.12.1 dotenv@^16.5.0 express@^5.1.0 axios@^1.10.0 \
@@ -23,6 +27,7 @@ RUN npx tsc
 
 # Stage 2: Runtime (minimal dependencies)
 FROM node:20-alpine AS runtime
+ARG BUILDKIT_CACHE_KEY
 WORKDIR /app
 
 # Install only essential runtime tools
@@ -33,7 +38,7 @@ RUN apk add --no-cache curl && \
 COPY package.runtime.json package.json
 
 # Install runtime dependencies with cache mount
-RUN --mount=type=cache,id=npm-runtime,target=/root/.npm \
+RUN --mount=type=cache,id=${BUILDKIT_CACHE_KEY}-npm-runtime,target=/root/.npm \
     npm install --production --no-audit --no-fund
 
 # Copy built application
