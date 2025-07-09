@@ -1,5 +1,5 @@
-# syntax=docker/dockerfile:1.7
 # Ultra-optimized Dockerfile - minimal runtime dependencies (no n8n packages)
+# Railway-compatible version without cache mounts
 
 # Stage 1: Builder (TypeScript compilation only)
 FROM node:20-alpine AS builder
@@ -9,8 +9,8 @@ WORKDIR /app
 COPY tsconfig.json ./
 
 # Create minimal package.json and install ONLY build dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    echo '{}' > package.json && \
+# Note: No cache mounts for Railway compatibility
+RUN echo '{}' > package.json && \
     npm install --no-save typescript@^5.8.3 @types/node@^22.15.30 @types/express@^5.0.3 \
         @modelcontextprotocol/sdk@^1.12.1 dotenv@^16.5.0 express@^5.1.0 axios@^1.10.0 \
         n8n-workflow@^1.96.0 uuid@^11.0.5 @types/uuid@^10.0.0
@@ -32,9 +32,8 @@ RUN apk add --no-cache curl && \
 # Copy runtime-only package.json
 COPY package.runtime.json package.json
 
-# Install runtime dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --production --no-audit --no-fund
+# Install runtime dependencies (no cache mount for Railway compatibility)
+RUN npm install --production --no-audit --no-fund
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
