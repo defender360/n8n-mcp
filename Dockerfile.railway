@@ -65,6 +65,13 @@ USER nodejs
 # Set Docker environment flag
 ENV IS_DOCKER=true
 
+# Railway-specific environment variables
+ENV MCP_MODE=http
+ENV NODE_ENV=production
+ENV LOG_LEVEL=info
+ENV TRUST_PROXY=1
+ENV USE_FIXED_HTTP=true
+
 # Expose HTTP port
 EXPOSE 3000
 

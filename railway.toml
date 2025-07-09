@@ -5,10 +5,13 @@ dockerfilePath = "Dockerfile.railway"
 [deploy]
 startCommand = "node dist/mcp/index.js"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+restartPolicyMaxRetries = 5
 
-[[services]]
-name = "mcp"
-port = 3000
+[env]
+MCP_MODE = "http"
+NODE_ENV = "production"
+LOG_LEVEL = "info"
+TRUST_PROXY = "1"
+USE_FIXED_HTTP = "true"
