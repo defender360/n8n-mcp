@@ -808,3 +808,125 @@ Contributions are welcome! Please:
 4. Run all tests before submitting PRs
 
 For questions or support, please open an issue on GitHub.
+
+## Railway Deployment (v2.7.8) - Lessons Learned
+
+### ✅ Railway Deployment Solution Implemented
+
+**Problem**: Railway has strict requirements for Docker cache mounts that caused persistent deployment failures even after multiple correction attempts.
+
+**Solution**: Created Railway-specific deployment approach with proper contribution workflow.
+
+### Key Learnings from Railway Integration
+
+#### 1. **Always Read Local Documentation First**
+- **❌ Mistake**: Making changes directly via GitHub MCP without understanding project structure
+- **✅ Correct**: Read README.md (673 lines!), CLAUDE.md, Dockerfile, and project structure first
+- **Result**: Discovered sophisticated multi-stage build architecture (~280MB, 82% smaller than typical)
+
+#### 2. **Use MCP Tools Correctly**
+- **❌ Mistake**: Trying to use `git push` directly from command line
+- **✅ Correct**: Use `mcp__github__push_files` for GitHub integration
+- **Result**: Proper authentication and branch management
+
+#### 3. **Preserve Existing Optimizations**
+- **❌ Mistake**: Simplifying complex architecture without understanding it
+- **✅ Correct**: Maintain multi-stage build, package.runtime.json separation, security features
+- **Result**: Railway-compatible solution that keeps all optimizations
+
+#### 4. **Work Locally Then Push**
+- **❌ Mistake**: Making changes directly on GitHub
+- **✅ Correct**: Work on local branch, test locally, then push via MCP
+- **Result**: Proper version control and testing workflow
+
+### Technical Implementation
+
+#### Railway-Specific Files Created:
+- **`Dockerfile.railway`** - Railway-compatible version without cache mounts
+- **`railway.toml`** - Configuration pointing to Railway-specific Dockerfile
+- **`RAILWAY_DEPLOYMENT.md`** - Complete deployment guide
+- **`RAILWAY_DEPLOYMENT_LOCAL.md`** - Documentation of correct contribution process
+
+#### Key Changes for Railway Compatibility:
+```dockerfile
+# Before (problematic for Railway)
+RUN --mount=type=cache,id=npm-builder,target=/root/.npm \
+    npm install --no-save typescript@^5.8.3 ...
+
+# After (Railway-compatible)
+RUN npm install --no-save typescript@^5.8.3 ...
+```
+
+#### railway.toml Configuration:
+```toml
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.railway"  # Points to Railway-specific version
+
+[deploy]
+startCommand = "node dist/mcp/index.js"
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+```
+
+### Contribution Workflow Established
+
+#### Correct Process for Future Contributors:
+1. **Read Documentation**: Start with README.md, CLAUDE.md, and relevant files
+2. **Understand Architecture**: Check existing Dockerfile, project structure, dependencies
+3. **Work Locally**: Use proper git workflow on correct branch
+4. **Test Changes**: Build and test locally when possible
+5. **Push via MCP**: Use GitHub MCP tools for authentication and push
+
+#### Files to Always Review:
+- `README.md` - Complete project documentation
+- `CLAUDE.md` - AI-specific instructions and history
+- `Dockerfile` - Docker architecture and optimizations
+- `package.json` & `package.runtime.json` - Dependency structure
+- `railway.toml` - Deployment configuration
+
+### Results Achieved
+
+#### Railway Deployment:
+- ✅ **Functional deployment** with Dockerfile.railway
+- ✅ **Maintained optimizations** from original architecture
+- ✅ **Proper documentation** for future deployments
+- ✅ **Error-free build process** without cache mount issues
+
+#### Process Documentation:
+- ✅ **Correct workflow documented** for future contributors
+- ✅ **Mistakes catalogued** to prevent repetition
+- ✅ **MCP usage examples** for GitHub integration
+- ✅ **Local-first approach** established
+
+### Best Practices Established
+
+#### For AI Assistants Working on This Project:
+1. **Documentation First**: Always read local docs before making changes
+2. **Respect Architecture**: Understand before simplifying or modifying
+3. **Local Testing**: Work locally, test, then push
+4. **MCP Integration**: Use GitHub MCP tools for proper authentication
+5. **Preserve Optimizations**: Maintain existing performance and security features
+
+#### For Railway Deployment:
+1. **Use Dockerfile.railway** for Railway-specific builds
+2. **Configure variables** as documented in RAILWAY_DEPLOYMENT.md
+3. **Monitor health checks** after deployment
+4. **Use branch railway-deploy** for Railway-related changes
+
+### Technical Debt and Improvements
+
+#### Resolved Issues:
+- ✅ Cache mount compatibility with Railway
+- ✅ Proper GitHub MCP integration workflow
+- ✅ Documentation of contribution process
+- ✅ Railway-specific deployment path
+
+#### Future Improvements:
+- Consider automated testing for Railway deployment
+- Evaluate other PaaS platforms for compatibility
+- Document testing procedures for deployment changes
+- Create templates for common deployment scenarios
+
+This Railway deployment experience demonstrates the importance of understanding project architecture before making changes and using proper development workflows when contributing to complex projects.
